@@ -6,10 +6,14 @@ import java.util.regex.*;
 
 public class ClientSide {
 
-	private static Socket client = null;
+	private static DatagramSocket client = null;
+	private static byte[] sendData = new byte[65535];
+	private static byte[] recievedData = new byte[65535];
 	private static Scanner input = new Scanner(System.in);
-	private static DataOutputStream toServer = null;
-	private static BufferedReader fromServer = null;
+	private static String IP = null;
+	private static String port = null;
+	//private static DataOutputStream toServer = null;
+	//private static BufferedReader fromServer = null;
 	
 	public static void main(String[] args) throws Exception {
 		String textFromServer = "";
@@ -39,8 +43,8 @@ public class ClientSide {
 			}
 		}
 
-		fromServer = new BufferedReader(new InputStreamReader(client.getInputStream()));
-		toServer = new DataOutputStream(client.getOutputStream());
+		//fromServer = new BufferedReader(new InputStreamReader(client.getInputStream()));
+		//toServer = new DataOutputStream(client.getOutputStream());
 		
 		//The part where the User actually interacts with the Website
 		System.out.println("");
@@ -49,7 +53,7 @@ public class ClientSide {
 			//This is how the User gets info from the Server
 			try
 			{
-				while((textFromServer = fromServer.readLine()) != null)
+				while((textFromServer = recieveData()) != null)
 				{
 					if(textFromServer.equals("^^&^&^&"))
 					{
@@ -61,7 +65,8 @@ public class ClientSide {
 					}
 					System.out.println(textFromServer);
 				}
-				toServer.writeBytes(input.nextLine() + "\n");
+				sendData(false);
+				//toServer.writeBytes(input.nextLine() + "\n");
 			}
 			catch(Exception e)
 			{
@@ -71,11 +76,40 @@ public class ClientSide {
 		}
 	}
 	
+	private static String recieveData() throws Exception
+	{
+		DatagramPacket fromServer = new DatagramPacket(recievedData, recievedData.length);
+		client.receive(fromServer);
+		String data = fromServer.getData().toString();
+		return data;
+	}
+	
+	private static void sendData(boolean connect)
+	{
+		String data = null;
+		if(connect == true)
+		{
+			data = "\n";
+		}
+		else
+		{
+			data = input.nextLine() + "\n";
+		}
+		
+		try
+		{
+			DatagramPacket toServer = new DatagramPacket(data.getBytes(), data.length(), InetAddress.getByName(IP), Integer.valueOf(port));
+			client.send(toServer);
+		}
+		catch(Exception e)
+		{
+			System.out.println("Couldn't send data");
+		}
+	}
+	
 	//This connects you to a website
 	private static void connect() throws Exception
 	{
-		String IP = null;
-		String port = null;
 		while(true)
 		{
 			//System.out.println("Great! Type the IP address of where you want to connect");
@@ -120,7 +154,8 @@ public class ClientSide {
 		{
 			try
 			{
-				client = new Socket(IP, Integer.valueOf(port));
+				client = new DatagramSocket();
+				sendData(true);
 				return;
 			}
 			catch(Exception e)
