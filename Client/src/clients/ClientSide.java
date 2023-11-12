@@ -7,8 +7,8 @@ import java.util.regex.*;
 public class ClientSide {
 
 	private static DatagramSocket client = null;
-	private static byte[] sendData = new byte[65535];
-	private static byte[] recievedData = new byte[65535];
+	private static byte[] sendData = new byte[1024];
+	private static byte[] recievedData = new byte[2048];
 	private static Scanner input = new Scanner(System.in);
 	private static String IP = null;
 	private static String port = null;
@@ -59,7 +59,7 @@ public class ClientSide {
 					{
 						close();
 					}
-					else if(textFromServer.equalsIgnoreCase(" "))
+					else if(textFromServer.equalsIgnoreCase("stop"))
 					{
 						break;
 					}
@@ -76,12 +76,21 @@ public class ClientSide {
 		}
 	}
 	
-	private static String recieveData() throws Exception
+	private static String recieveData()
 	{
-		DatagramPacket fromServer = new DatagramPacket(recievedData, recievedData.length);
-		client.receive(fromServer);
-		String data = fromServer.getData().toString();
-		return data;
+		try
+		{
+			DatagramPacket fromServer = new DatagramPacket(recievedData, recievedData.length);
+			client.receive(fromServer);
+			String data = new String(fromServer.getData(), 0, fromServer.getLength()).trim();
+			return data;
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+			
+		}
+		return null;
 	}
 	
 	private static void sendData(boolean connect)
@@ -89,7 +98,7 @@ public class ClientSide {
 		String data = null;
 		if(connect == true)
 		{
-			data = "\n";
+			data = "";
 		}
 		else
 		{
@@ -98,7 +107,8 @@ public class ClientSide {
 		
 		try
 		{
-			DatagramPacket toServer = new DatagramPacket(data.getBytes(), data.length(), InetAddress.getByName(IP), Integer.valueOf(port));
+			sendData = data.getBytes();
+			DatagramPacket toServer = new DatagramPacket(sendData, sendData.length, InetAddress.getByName(IP), Integer.valueOf(port));
 			client.send(toServer);
 		}
 		catch(Exception e)
@@ -196,7 +206,7 @@ public class ClientSide {
 	{
 		if(IP.equalsIgnoreCase("localhost"))
 		{
-			IP = "127.0.01";
+			IP = "127.0.0.1";
 		}
 		String pattern = "(\\d{1,2}|(0|1)\\d{2}|2[0-4]\\d|25[0-5])";
 		String IP_pattern = pattern + "." + pattern + "." + pattern + "." + pattern;
