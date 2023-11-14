@@ -12,12 +12,9 @@ public class ClientSide {
 	private static Scanner input = new Scanner(System.in);
 	private static String IP = null;
 	private static String port = null;
-	//private static DataOutputStream toServer = null;
-	//private static BufferedReader fromServer = null;
 	
 	public static void main(String[] args) throws Exception {
 		String textFromServer = "";
-		//Socket client = null;
 		String response = "";
 		boolean valid_input = false;
 
@@ -28,24 +25,18 @@ public class ClientSide {
 			response = input.nextLine().toLowerCase();
 			switch(response)
 			{
-				case "connect":
-				case "1":
+				case "connect", "1":
 					connect();
 					valid_input = true;
 					break;
-				case "exit":
-				case "2":
-					close();
+				case "exit", "2":
+					close(response);
 					break;
 				default:
 					System.out.println("Your input is not valid\nTry again");
 					break;
 			}
 		}
-
-		//fromServer = new BufferedReader(new InputStreamReader(client.getInputStream()));
-		//toServer = new DataOutputStream(client.getOutputStream());
-		
 		//The part where the User actually interacts with the Website
 		System.out.println("");
 		while(true)
@@ -55,9 +46,9 @@ public class ClientSide {
 			{
 				while((textFromServer = recieveData()) != null)
 				{
-					if(textFromServer.equals("^^&^&^&"))
+					if(textFromServer.equals("^^&^&^&") || textFromServer.equals("Timeout"))
 					{
-						close();
+						close(textFromServer);
 					}
 					else if(textFromServer.equalsIgnoreCase("stop"))
 					{
@@ -66,16 +57,15 @@ public class ClientSide {
 					System.out.println(textFromServer);
 				}
 				sendData(false);
-				//toServer.writeBytes(input.nextLine() + "\n");
 			}
 			catch(Exception e)
 			{
-				System.out.println("You and the server have disconnected");
-				close();
+				close("ERROR");
 			}
 		}
 	}
 	
+	//This recieves the data the server sends
 	private static String recieveData()
 	{
 		try
@@ -93,6 +83,7 @@ public class ClientSide {
 		return null;
 	}
 	
+	//This sends the data the user entered
 	private static void sendData(boolean connect)
 	{
 		String data = null;
@@ -104,6 +95,8 @@ public class ClientSide {
 		{
 			data = input.nextLine() + "\n";
 		}
+		
+		//
 		
 		try
 		{
@@ -134,7 +127,7 @@ public class ClientSide {
 			}
 			else if(IP.equalsIgnoreCase("exit"))
 			{
-				close();
+				close(IP);
 			}
 			else
 			{
@@ -152,7 +145,7 @@ public class ClientSide {
 			}
 			else if(port.equalsIgnoreCase("exit"))
 			{
-				close();
+				close(port);
 			}
 			else
 			{
@@ -177,7 +170,7 @@ public class ClientSide {
 				else
 				{
 					System.out.println("Couldn't connect to the IP address: " + IP + " With port number: " + port);
-					close();
+					close("");
 				}
 			}
 		}
@@ -216,8 +209,8 @@ public class ClientSide {
 	}
 	
 	//Stops the program
-	private static void close() throws Exception
-	{
+	private static void close(String type) throws Exception
+	{	
 		if(client != null)
 		{
 			client.close();
@@ -226,7 +219,20 @@ public class ClientSide {
 		{
 			input.close();
 		}
-		System.out.println("Closing...");
+		switch(type)
+		{
+			case "Timeout":
+				System.out.println("You session timed out\n" + "This is application is now closed");
+				break;
+			case "^^&^&^&", "exit":
+				System.out.println("Closing...");
+			case "ERROR":
+				System.out.println("An error has occured\n" + "You and the server have disconnected");
+				break;
+			default:
+				System.out.println("Closing...");
+		}
+		//System.out.println("Closing...");
 		System.exit(0);
 	}
 
