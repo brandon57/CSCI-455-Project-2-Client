@@ -95,9 +95,6 @@ public class ClientSide {
 		{
 			data = input.nextLine() + "\n";
 		}
-		
-		//
-		
 		try
 		{
 			sendData = data.getBytes();
