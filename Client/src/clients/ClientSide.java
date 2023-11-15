@@ -1,19 +1,21 @@
 package clients;
 import java.io.*;
 import java.net.*;
+import java.time.LocalTime;
 import java.util.Scanner;
 import java.util.regex.*;
 
 public class ClientSide {
 
-	private static Socket client = null;
+	private static DatagramSocket client = null;
+	private static byte[] sendData = new byte[1024];
+	private static byte[] recievedData = new byte[2048];
 	private static Scanner input = new Scanner(System.in);
-	private static DataOutputStream toServer = null;
-	private static BufferedReader fromServer = null;
+	private static String IP = null;
+	private static String port = null;
 	
 	public static void main(String[] args) throws Exception {
 		String textFromServer = "";
-		//Socket client = null;
 		String response = "";
 		boolean valid_input = false;
 
@@ -24,24 +26,18 @@ public class ClientSide {
 			response = input.nextLine().toLowerCase();
 			switch(response)
 			{
-				case "connect":
-				case "1":
+				case "connect", "1":
 					connect();
 					valid_input = true;
 					break;
-				case "exit":
-				case "2":
-					close();
+				case "exit", "2":
+					close(response);
 					break;
 				default:
 					System.out.println("Your input is not valid\nTry again");
 					break;
 			}
 		}
-
-		fromServer = new BufferedReader(new InputStreamReader(client.getInputStream()));
-		toServer = new DataOutputStream(client.getOutputStream());
-		
 		//The part where the User actually interacts with the Website
 		System.out.println("");
 		while(true)
@@ -49,33 +45,82 @@ public class ClientSide {
 			//This is how the User gets info from the Server
 			try
 			{
-				while((textFromServer = fromServer.readLine()) != null)
+				while((textFromServer = recieveData(0)) != null)
 				{
-					if(textFromServer.equals("^^&^&^&"))
+					if(textFromServer.equals("^^&^&^&") || textFromServer.equals("Timeout"))
 					{
-						close();
+						close(textFromServer);
 					}
-					else if(textFromServer.equalsIgnoreCase(" "))
+					else if(textFromServer.equalsIgnoreCase("stop"))
 					{
 						break;
 					}
 					System.out.println(textFromServer);
 				}
-				toServer.writeBytes(input.nextLine() + "\n");
+				sendData(false);
 			}
 			catch(Exception e)
 			{
-				System.out.println("You and the server have disconnected");
-				close();
+				close("ERROR");
 			}
+		}
+	}
+	
+	//This recieves the data the server sends
+	private static String recieveData(int type) throws Exception
+	{
+		//Waits for the server to send something
+		//If nothing is sent within 5 seconds the client application tries to reconnect to the server
+		//If not successful the application closes
+		for(int i = 0; i < 4; i++)
+		{
+			try
+			{
+				DatagramPacket fromServer = new DatagramPacket(recievedData, recievedData.length);
+				client.setSoTimeout(10000);
+				client.receive(fromServer);
+				String data = new String(fromServer.getData(), 0, fromServer.getLength()).trim();
+				return data;
+			}
+			catch(Exception e)
+			{
+				sendData(true);
+				System.out.println("Not recieving anything from server trying to reconnect");
+				//e.printStackTrace();
+			}
+		}
+		close("ERROR");
+		return null;
+	}
+	
+	//This sends the data the user entered
+	private static void sendData(boolean connect)
+	{
+		String data = null;
+		//Checks if this is the users first time connecting to the server
+		if(connect == true)
+		{
+			data = "";
+		}
+		else
+		{
+			data = input.nextLine() + "\n";
+		}
+		try
+		{
+			sendData = data.getBytes();
+			DatagramPacket toServer = new DatagramPacket(sendData, sendData.length, InetAddress.getByName(IP), Integer.valueOf(port));
+			client.send(toServer);
+		}
+		catch(Exception e)
+		{
+			System.out.println("Couldn't send data");
 		}
 	}
 	
 	//This connects you to a website
 	private static void connect() throws Exception
 	{
-		String IP = null;
-		String port = null;
 		while(true)
 		{
 			//System.out.println("Great! Type the IP address of where you want to connect");
@@ -90,7 +135,7 @@ public class ClientSide {
 			}
 			else if(IP.equalsIgnoreCase("exit"))
 			{
-				close();
+				close(IP);
 			}
 			else
 			{
@@ -108,7 +153,7 @@ public class ClientSide {
 			}
 			else if(port.equalsIgnoreCase("exit"))
 			{
-				close();
+				close(port);
 			}
 			else
 			{
@@ -120,7 +165,8 @@ public class ClientSide {
 		{
 			try
 			{
-				client = new Socket(IP, Integer.valueOf(port));
+				client = new DatagramSocket();
+				sendData(true);
 				return;
 			}
 			catch(Exception e)
@@ -132,7 +178,7 @@ public class ClientSide {
 				else
 				{
 					System.out.println("Couldn't connect to the IP address: " + IP + " With port number: " + port);
-					close();
+					close("");
 				}
 			}
 		}
@@ -161,7 +207,7 @@ public class ClientSide {
 	{
 		if(IP.equalsIgnoreCase("localhost"))
 		{
-			IP = "127.0.01";
+			IP = "127.0.0.1";
 		}
 		String pattern = "(\\d{1,2}|(0|1)\\d{2}|2[0-4]\\d|25[0-5])";
 		String IP_pattern = pattern + "." + pattern + "." + pattern + "." + pattern;
@@ -171,8 +217,8 @@ public class ClientSide {
 	}
 	
 	//Stops the program
-	private static void close() throws Exception
-	{
+	private static void close(String type) throws Exception
+	{	
 		if(client != null)
 		{
 			client.close();
@@ -181,7 +227,20 @@ public class ClientSide {
 		{
 			input.close();
 		}
-		System.out.println("Closing...");
+		switch(type)
+		{
+			case "Timeout":
+				System.out.println("You session timed out\n" + "This is application is now closed");
+				break;
+			case "^^&^&^&", "exit":
+				System.out.println("Closing...");
+			case "ERROR":
+				System.out.println("An error has occured\n" + "You and the server have disconnected");
+				break;
+			default:
+				System.out.println("Closing...");
+		}
+		//System.out.println("Closing...");
 		System.exit(0);
 	}
 
