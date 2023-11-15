@@ -1,6 +1,7 @@
 package clients;
 import java.io.*;
 import java.net.*;
+import java.time.LocalTime;
 import java.util.Scanner;
 import java.util.regex.*;
 
@@ -44,7 +45,7 @@ public class ClientSide {
 			//This is how the User gets info from the Server
 			try
 			{
-				while((textFromServer = recieveData()) != null)
+				while((textFromServer = recieveData(0)) != null)
 				{
 					if(textFromServer.equals("^^&^&^&") || textFromServer.equals("Timeout"))
 					{
@@ -66,20 +67,29 @@ public class ClientSide {
 	}
 	
 	//This recieves the data the server sends
-	private static String recieveData()
+	private static String recieveData(int type) throws Exception
 	{
-		try
+		//Waits for the server to send something
+		//If nothing is sent within 5 seconds the client application tries to reconnect to the server
+		//If not successful the application closes
+		for(int i = 0; i < 4; i++)
 		{
-			DatagramPacket fromServer = new DatagramPacket(recievedData, recievedData.length);
-			client.receive(fromServer);
-			String data = new String(fromServer.getData(), 0, fromServer.getLength()).trim();
-			return data;
+			try
+			{
+				DatagramPacket fromServer = new DatagramPacket(recievedData, recievedData.length);
+				client.setSoTimeout(10000);
+				client.receive(fromServer);
+				String data = new String(fromServer.getData(), 0, fromServer.getLength()).trim();
+				return data;
+			}
+			catch(Exception e)
+			{
+				sendData(true);
+				System.out.println("Not recieving anything from server trying to reconnect");
+				//e.printStackTrace();
+			}
 		}
-		catch(Exception e)
-		{
-			e.printStackTrace();
-			
-		}
+		close("ERROR");
 		return null;
 	}
 	
@@ -87,6 +97,7 @@ public class ClientSide {
 	private static void sendData(boolean connect)
 	{
 		String data = null;
+		//Checks if this is the users first time connecting to the server
 		if(connect == true)
 		{
 			data = "";
