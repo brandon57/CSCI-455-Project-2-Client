@@ -1,7 +1,7 @@
 # CSCI-455-Project-2-Client
 The client application of project 2 for CSCI 455
 
-If you are looking for the server application the github repository for it is here [Server application](https://github.com/brandon57/CSCI-455-Project-1-Server)
+If you are looking for the server application the github repository for it is here [Server application](https://github.com/brandon57/CSCI-455-Project-2-Server)
 
 Note: In order to run this you need Java JDK version 17 or newer
 
@@ -12,7 +12,7 @@ Note: In order to run this you need Java JDK version 17 or newer
 
 # How to start the client
 In order to run the client application you need to open the command line or powershell and navigate to the directory of where the file is located.
-Once you do that you can start the program by typing this command `java -jar Client.jar`
+Once you do that you can start the program by typing this command `java -jar ClientUDP.jar`
 
 Once you do that should be greeted with a screen asking you what you want to do.
 ```text
